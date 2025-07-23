@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: guestbook-backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      # Spring 설정
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      
+      # 데이터베이스 설정
+      - DATABASE_URL=${DATABASE_URL:-jdbc:h2:mem:dockerdb}
+      - DATABASE_DRIVER=${DATABASE_DRIVER:-org.h2.Driver}
+      - DATABASE_USERNAME=${DATABASE_USERNAME:-docker}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
+      
+      # JPA 설정
+      - JPA_DATABASE_PLATFORM=${JPA_DATABASE_PLATFORM:-org.hibernate.dialect.H2Dialect}
+      - JPA_DDL_AUTO=${JPA_DDL_AUTO:-create-drop}
+      - JPA_SHOW_SQL=${JPA_SHOW_SQL:-false}
+      - JPA_FORMAT_SQL=${JPA_FORMAT_SQL:-false}
+      
+      # H2 콘솔 설정
+      - H2_CONSOLE_ENABLED=${H2_CONSOLE_ENABLED:-false}
+      - H2_CONSOLE_PATH=${H2_CONSOLE_PATH:-/h2-console}
+      - H2_WEB_ALLOW_OTHERS=${H2_WEB_ALLOW_OTHERS:-false}
+      
+      # 로깅 설정
+      - LOG_LEVEL_APP=${LOG_LEVEL_APP:-INFO}
+      - LOG_LEVEL_WEB=${LOG_LEVEL_WEB:-WARN}
+      - LOG_LEVEL_SECURITY=${LOG_LEVEL_SECURITY:-WARN}
+      - LOG_LEVEL_HIBERNATE=${LOG_LEVEL_HIBERNATE:-WARN}
+      
+      # 액추에이터 설정
+      - MANAGEMENT_ENDPOINTS=${MANAGEMENT_ENDPOINTS:-health,info}
+      - MANAGEMENT_HEALTH_SHOW_DETAILS=${MANAGEMENT_HEALTH_SHOW_DETAILS:-always}
+      
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - guestbook-network
+    restart: unless-stopped
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # 빌드 시점에 환경변수 전달
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080/api}
+        - VITE_APP_TITLE=${VITE_APP_TITLE:-방명록}
+        - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0}
+        - VITE_ENVIRONMENT=${VITE_ENVIRONMENT:-docker}
+        - VITE_API_TIMEOUT=${VITE_API_TIMEOUT:-30000}
+    container_name: guestbook-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - guestbook-network
+    restart: unless-stopped
+
+networks:
+  guestbook-network:
+    driver: bridge

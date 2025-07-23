@@ -1,0 +1,51 @@
+spring:
+  # 프로파일별 설정
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    
+  # 데이터베이스 설정 (환경변수 사용)
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    
+  # JPA 설정
+  jpa:
+    database-platform: ${JPA_DATABASE_PLATFORM:org.hibernate.dialect.H2Dialect}
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:create-drop}
+    show-sql: ${JPA_SHOW_SQL:true}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:true}
+        
+  # H2 콘솔 설정
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: ${H2_CONSOLE_PATH:/h2-console}
+      settings:
+        web-allow-others: ${H2_WEB_ALLOW_OTHERS:true}
+
+# 서버 설정
+server:
+  port: ${SERVER_PORT:8080}
+
+# 액추에이터 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:always}
+
+# 로깅 설정
+logging:
+  level:
+    com.guestbook.guestbook: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+    org.hibernate: ${LOG_LEVEL_HIBERNATE:WARN}

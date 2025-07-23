@@ -1,0 +1,21 @@
+version: '3.8'
+
+# 개발환경용 override - .env 파일 사용
+services:
+  backend:
+    environment:
+      # 개발환경 특화 설정
+      - SPRING_PROFILES_ACTIVE=dev
+      - H2_CONSOLE_ENABLED=true
+      - JPA_SHOW_SQL=true
+      - JPA_FORMAT_SQL=true
+      - LOG_LEVEL_APP=DEBUG
+      - LOG_LEVEL_WEB=DEBUG
+    volumes:
+      # 개발시 로그 확인용
+      - ./logs:/app/logs
+
+  frontend:
+    build:
+      args:
+        - VITE_ENVIRONMENT=development

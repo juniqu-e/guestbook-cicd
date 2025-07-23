@@ -1,0 +1,290 @@
+# ====================================================================
+# 방명록 CI/CD 프로젝트 .gitignore
+# ====================================================================
+
+# ====================================================================
+# 민감한 정보 및 환경 설정
+# ====================================================================
+*.pem
+*.key
+*.p12
+*.jks
+.env
+.env.local
+.env.development
+.env.staging
+config/secrets.yml
+application-secrets.yml
+
+backend/.env
+frontend/.env
+
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# ====================================================================
+# Java/Spring Boot 관련
+# ====================================================================
+backend/target/
+backend/build/
+backend/out/
+backend/.gradle/
+backend/gradle/wrapper/gradle-wrapper.jar
+backend/bin/
+backend/.settings/
+backend/.project
+backend/.classpath
+backend/.factorypath
+backend/.springBeans
+backend/.sts4-cache/
+
+# Spring Boot 로그
+backend/logs/
+backend/*.log
+backend/spring.log
+
+# H2 데이터베이스 파일 (메모리 DB라서 일반적으로 생성되지 않지만)
+backend/*.db
+backend/*.mv.db
+backend/*.trace.db
+
+# ====================================================================
+# Node.js/React 관련  
+# ====================================================================
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# 빌드 결과물
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# 에디터/IDE 캐시
+frontend/.vscode/
+frontend/.idea/
+frontend/*.swp
+frontend/*.swo
+
+# OS 캐시
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# ====================================================================
+# Docker 관련
+# ====================================================================
+# Docker Compose override 파일 (개인 설정)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker 빌드 컨텍스트에서 제외할 임시 파일
+**/.dockerignore
+**/Dockerfile.dev
+**/Dockerfile.local
+
+# ====================================================================
+# CI/CD 관련
+# ====================================================================
+# GitLab CI 로컬 캐시
+.gitlab-ci-local/
+
+# Jenkins 로컬 설정
+jenkins/secrets/
+jenkins/workspace/
+jenkins/jobs/*/builds/
+jenkins/jobs/*/lastStable
+jenkins/jobs/*/lastSuccessful
+
+# 배포 스크립트 로그
+deploy.log
+deployment.log
+
+# ====================================================================
+# IDE/에디터 관련
+# ====================================================================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.metadata/
+.settings/
+.project
+.classpath
+.factorypath
+.springBeans
+.sts4-cache/
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ====================================================================
+# OS 관련
+# ====================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ====================================================================
+# 로그 파일
+# ====================================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ====================================================================
+# 임시 파일 및 캐시
+# ====================================================================
+# 일반 임시 파일
+*.tmp
+*.temp
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# 압축 파일 (배포 관련 제외)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 백업 파일
+*.bak
+*.backup
+*.old
+*.orig
+
+# ====================================================================
+# 테스트 관련
+# ====================================================================
+# 테스트 결과
+**/test-results/
+**/coverage/
+**/.nyc_output/
+**/junit.xml
+
+# ====================================================================
+# 로컬 개발 관련
+# ====================================================================
+# 로컬 설정 파일
+local.properties
+local.yml
+local.json
+
+# 개발자 개인 메모
+TODO.md
+NOTES.md
+PERSONAL.md
+
+# 로컬 데이터베이스
+*.sqlite
+*.sqlite3
+*.db
+
+# ====================================================================
+# 의존성 디렉토리 (복원 가능한 것들)
+# ====================================================================
+# Gradle 래퍼는 포함하되, 다운로드된 Gradle은 제외
+backend/.gradle/
+!backend/gradle/wrapper/gradle-wrapper.jar
+!backend/gradle/wrapper/gradle-wrapper.properties
+
+# NPM 패키지 (package-lock.json은 포함)
+frontend/node_modules/
+!frontend/package-lock.json
+
+# ====================================================================
+# 보안 관련 (중요!)
+# ====================================================================
+# SSH 키
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# SSL 인증서
+*.crt
+*.cert
+*.cer
+*.p12
+*.pfx
+
+# API 키 및 토큰
+**/secrets/
+**/*-secret.yml
+**/*-secret.yaml
+**/*-secret.json
+
+# 데이터베이스 패스워드
+**/database.yml
+**/database.yaml
+
+# ====================================================================
+# 프로덕션 빌드 아티팩트 (선택적)
+# ====================================================================
+# 만약 빌드 결과물을 Git에 포함하지 않으려면 주석 해제
+# frontend/dist/
+# backend/build/libs/
+
+# ====================================================================
+# Docker 개발 관련 (선택적)
+# ====================================================================
+# Docker Compose 개발 환경
+# docker-compose.dev.yml
+# docker-compose.test.yml
+
+# Docker 볼륨 데이터 (로컬 개발용)
+docker-data/
+volumes/

@@ -1,0 +1,13 @@
+{
+  "name": "guestbook",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:local": "echo 'Starting development environment...' && docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "dev:docker": "echo 'Starting docker environment...' && docker-compose --env-file .env.docker up --build",
+    "prod": "echo 'Starting production environment...' && docker-compose --env-file .env.production up --build",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v --rmi all",
+    "logs:backend": "docker-compose logs -f backend",
+    "logs:frontend": "docker-compose logs -f frontend"
+  }
+}
