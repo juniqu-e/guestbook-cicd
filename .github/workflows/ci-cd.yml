@@ -2,9 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]  # master 브랜치 추가
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]           # master 브랜치 추가
+  workflow_dispatch:                     # 수동 실행 옵션 추가
 
 env:
   REGISTRY: ghcr.io
@@ -17,7 +18,6 @@ jobs:
   # ====================================================================
   test-backend:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'backend') || contains(github.event.head_commit.message, 'all') || github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -49,7 +49,6 @@ jobs:
 
   test-frontend:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'frontend') || contains(github.event.head_commit.message, 'all') || github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -78,7 +77,7 @@ jobs:
   build-and-push:
     needs: [test-backend, test-frontend]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     
     permissions:
       contents: read
@@ -109,7 +108,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Extract metadata (tags, labels)
+    - name: Extract metadata for backend
       id: meta-backend
       uses: docker/metadata-action@v5
       with:
@@ -152,18 +151,17 @@ jobs:
           VITE_API_TIMEOUT=30000
 
   # ====================================================================
-  # 배포 단계 (수동 트리거)
+  # 배포 준비 단계
   # ====================================================================
-  deploy:
+  deploy-ready:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     
     steps:
-    - name: Deploy to server
+    - name: Deployment Ready
       run: |
-        echo "🚀 배포 준비 완료!"
+        echo "🎯 배포 준비 완료!"
         echo "Backend 이미지: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}"
         echo "Frontend 이미지: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}"
         echo "서버 연결 후 실제 배포 진행 예정"
