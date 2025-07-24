@@ -2,10 +2,10 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, main, develop ]  # master 브랜치 추가
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ master, main ]           # master 브랜치 추가
-  workflow_dispatch:                     # 수동 실행 옵션 추가
+    branches: [ master, main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -144,24 +144,50 @@ jobs:
         tags: ${{ steps.meta-frontend.outputs.tags }}
         labels: ${{ steps.meta-frontend.outputs.labels }}
         build-args: |
-          VITE_API_BASE_URL=http://localhost:8080/api
+          VITE_API_BASE_URL=http://t1324.p.ssafy.io:8080/api
           VITE_APP_TITLE=방명록
           VITE_APP_VERSION=${{ github.sha }}
           VITE_ENVIRONMENT=production
           VITE_API_TIMEOUT=30000
 
   # ====================================================================
-  # 배포 준비 단계
+  # 배포 단계 (새로 추가!)
   # ====================================================================
-  deploy-ready:
+  deploy-to-server:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    environment: production
     
     steps:
-    - name: Deployment Ready
+    - name: Deploy to SSAFY server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          export GITHUB_ACTOR=${{ github.actor }}
+          export IMAGE_TAG=${{ github.sha }}
+          cd ~/guestbook
+          ./deploy.sh
+          
+    - name: Verify deployment
       run: |
-        echo "🎯 배포 준비 완료!"
-        echo "Backend 이미지: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}"
-        echo "Frontend 이미지: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}"
-        echo "서버 연결 후 실제 배포 진행 예정"
+        echo "⏳ 배포 확인 중..."
+        sleep 30
+        
+        # 백엔드 헬스체크
+        if curl -f http://${{ secrets.SERVER_HOST }}:8080/actuator/health; then
+          echo "✅ 백엔드 정상 작동!"
+        else
+          echo "❌ 백엔드 헬스체크 실패"
+          exit 1
+        fi
+        
+        echo "🎉 배포 성공!"
+        echo "🌐 프론트엔드: http://${{ secrets.SERVER_HOST }}:3000"
+        echo "🔧 백엔드: http://${{ secrets.SERVER_HOST }}:8080"
+        echo "📊 헬스체크: http://${{ secrets.SERVER_HOST }}:8080/actuator/health"
+        echo "💾 H2 콘솔: http://${{ secrets.SERVER_HOST }}:8080/h2-console"
