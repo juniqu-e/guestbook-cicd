@@ -78,10 +78,9 @@ jobs:
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         timeout: 30s
-        use_insecure_cipher: false
         script: |
           echo "✅ SSH 연결 성공!"
           echo "현재 사용자: $(whoami)"
@@ -93,7 +92,7 @@ jobs:
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         timeout: 300s
         script: |
           # 배포 디렉토리 생성
@@ -108,25 +107,12 @@ jobs:
             cp deploy.sh deploy.sh.backup.$(date +%Y%m%d_%H%M%S)
           fi
 
-    - name: Create docker-compose.prod.yml
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        timeout: 60s
-        script: |
-          cd ~/guestbook
-          cat > docker-compose.prod.yml << 'EOF'
-          ${{ github.workspace }}/docker-compose.prod.yml의 내용을 여기에
-          EOF
-
     - name: Upload docker-compose.prod.yml content
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         timeout: 60s
         script: |
           cd ~/guestbook
@@ -181,7 +167,7 @@ jobs:
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         timeout: 60s
         script: |
           cd ~/guestbook
@@ -262,7 +248,7 @@ jobs:
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         timeout: 600s
         command_timeout: 900s
         script: |
