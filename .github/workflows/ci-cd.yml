@@ -73,14 +73,187 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Copy deployment files to server
-      uses: appleboy/scp-action@v0.1.7
+    - name: Test SSH connection
+      uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-        source: "docker-compose.prod.yml,deploy.sh"
-        target: "~/guestbook/"
+        timeout: 30s
+        script: |
+          echo "✅ SSH 연결 성공!"
+          echo "현재 사용자: $(whoami)"
+          echo "Docker 버전: $(docker --version)"
+          echo "Docker Compose 확인: $(docker compose version || docker-compose --version)"
+
+    - name: Copy deployment files to server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        timeout: 300s
+        script: |
+          # 배포 디렉토리 생성
+          mkdir -p ~/guestbook
+          cd ~/guestbook
+          
+          # 기존 파일 백업
+          if [ -f docker-compose.prod.yml ]; then
+            cp docker-compose.prod.yml docker-compose.prod.yml.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+          if [ -f deploy.sh ]; then
+            cp deploy.sh deploy.sh.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+
+    - name: Create docker-compose.prod.yml
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        timeout: 60s
+        script: |
+          cd ~/guestbook
+          cat > docker-compose.prod.yml << 'EOF'
+          ${{ github.workspace }}/docker-compose.prod.yml의 내용을 여기에
+          EOF
+
+    - name: Upload docker-compose.prod.yml content
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        timeout: 60s
+        script: |
+          cd ~/guestbook
+          cat > docker-compose.prod.yml << 'EOF'
+          version: '3.8'
+          
+          services:
+            backend:
+              image: ghcr.io/juniqu-e/guestbook-cicd/backend:${IMAGE_TAG:-latest}
+              container_name: guestbook-backend
+              ports:
+                - "8080:8080"
+              environment:
+                - SPRING_PROFILES_ACTIVE=docker
+                - JPA_SHOW_SQL=false
+                - LOG_LEVEL_APP=INFO
+                - LOG_LEVEL_WEB=WARN
+                - LOG_LEVEL_SECURITY=WARN
+                - LOG_LEVEL_HIBERNATE=WARN
+                - H2_CONSOLE_ENABLED=false
+                - MANAGEMENT_ENDPOINTS=health,info
+                - MANAGEMENT_HEALTH_SHOW_DETAILS=when-authorized
+              healthcheck:
+                test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 40s
+              restart: unless-stopped
+              networks:
+                - guestbook-network
+          
+            frontend:
+              image: ghcr.io/juniqu-e/guestbook-cicd/frontend:${IMAGE_TAG:-latest}
+              container_name: guestbook-frontend
+              ports:
+                - "3000:80"
+              depends_on:
+                backend:
+                  condition: service_healthy
+              restart: unless-stopped
+              networks:
+                - guestbook-network
+          
+          networks:
+            guestbook-network:
+              driver: bridge
+          EOF
+
+    - name: Upload deploy.sh script
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        timeout: 60s
+        script: |
+          cd ~/guestbook
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "🚀 방명록 배포 시작... ($(date))"
+          
+          # 필수 환경변수 확인
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "❌ IMAGE_TAG 환경변수가 설정되지 않았습니다."
+            exit 1
+          fi
+          
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "❌ GITHUB_TOKEN 환경변수가 설정되지 않았습니다."
+            exit 1
+          fi
+          
+          echo "📦 배포할 이미지 태그: $IMAGE_TAG"
+          
+          # Docker Compose 명령어 확인
+          if command -v docker-compose &> /dev/null; then
+            COMPOSE_CMD="docker-compose"
+          elif docker compose version &> /dev/null; then
+            COMPOSE_CMD="docker compose"
+          else
+            echo "❌ Docker Compose를 찾을 수 없습니다."
+            exit 1
+          fi
+          
+          echo "✅ 사용할 Docker Compose: $COMPOSE_CMD"
+          
+          # GitHub Container Registry 로그인
+          echo "🔐 Container Registry 로그인 중..."
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          
+          # 기존 서비스 정리
+          echo "🛑 기존 서비스 정리 중..."
+          timeout 60s $COMPOSE_CMD -f docker-compose.prod.yml down --remove-orphans || true
+          
+          # 새 이미지 다운로드
+          echo "📥 새 이미지 다운로드 중..."
+          export IMAGE_TAG=$IMAGE_TAG
+          timeout 300s $COMPOSE_CMD -f docker-compose.prod.yml pull
+          
+          # 새 서비스 시작
+          echo "🚀 새 서비스 시작 중..."
+          timeout 180s $COMPOSE_CMD -f docker-compose.prod.yml up -d
+          
+          # 헬스체크
+          echo "🏥 서비스 헬스체크 중..."
+          sleep 30
+          
+          if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "guestbook"; then
+            echo "✅ 서비스가 정상적으로 시작되었습니다!"
+          else
+            echo "❌ 서비스 시작 실패"
+            $COMPOSE_CMD -f docker-compose.prod.yml logs --tail=20
+            exit 1
+          fi
+          
+          # 최종 상태 확인
+          echo "📋 실행 중인 서비스:"
+          $COMPOSE_CMD -f docker-compose.prod.yml ps
+          
+          echo "🎉 배포 완료!"
+          echo "🌐 Frontend: http://$(curl -s ifconfig.me):3000"
+          echo "🔧 Backend: http://$(curl -s ifconfig.me):8080"
+          EOF
+          
+          # 실행 권한 부여
+          chmod +x deploy.sh
 
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.0
@@ -92,9 +265,6 @@ jobs:
         command_timeout: 900s
         script: |
           cd ~/guestbook
-          
-          # 실행 권한 부여
-          chmod +x deploy.sh
           
           # 환경변수 설정
           export IMAGE_TAG="commit-${{ github.sha }}"
