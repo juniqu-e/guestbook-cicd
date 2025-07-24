@@ -1,6 +1,6 @@
 # Multi-stage build
 # 1단계: 빌드 환경
-FROM node:18-alpine as build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -18,9 +18,9 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 ENV VITE_ENVIRONMENT=$VITE_ENVIRONMENT
 ENV VITE_API_TIMEOUT=$VITE_API_TIMEOUT
 
-# 의존성 설치
+# 의존성 설치 (dev dependencies 포함 - 빌드용)
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # 소스 복사 및 빌드
 COPY . .
