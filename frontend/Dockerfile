@@ -1,3 +1,5 @@
+# Multi-stage build
+# 1단계: 빌드 환경
 FROM node:18-alpine as build
 
 WORKDIR /app
@@ -16,17 +18,21 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 ENV VITE_ENVIRONMENT=$VITE_ENVIRONMENT
 ENV VITE_API_TIMEOUT=$VITE_API_TIMEOUT
 
-# 종속성 설치
+# 의존성 설치
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --only=production
 
 # 소스 복사 및 빌드
 COPY . .
 RUN npm run build
 
-# 프로덕션 이미지
+# 2단계: 프로덕션 환경
 FROM nginx:alpine
+
+# 빌드된 파일 복사
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Nginx 설정 복사 (있다면)
 COPY nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
