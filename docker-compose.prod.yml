@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/juniqu-e/guestbook-cicd/backend:${IMAGE_TAG:-latest}
+    container_name: guestbook-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # 프로덕션 환경 설정
+      - SPRING_PROFILES_ACTIVE=docker
+      - JPA_SHOW_SQL=false
+      - LOG_LEVEL_APP=INFO
+      - LOG_LEVEL_WEB=WARN
+      - LOG_LEVEL_SECURITY=WARN
+      - LOG_LEVEL_HIBERNATE=WARN
+      - H2_CONSOLE_ENABLED=false
+      - MANAGEMENT_ENDPOINTS=health,info
+      - MANAGEMENT_HEALTH_SHOW_DETAILS=when-authorized
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - guestbook-network
+
+  frontend:
+    image: ghcr.io/juniqu-e/guestbook-cicd/frontend:${IMAGE_TAG:-latest}
+    container_name: guestbook-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - guestbook-network
+
+networks:
+  guestbook-network:
+    driver: bridge
