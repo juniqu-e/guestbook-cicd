@@ -5,48 +5,30 @@ import './App.css';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function App() {
-  const [entries, setEntries] = useState([]); // 기본값을 빈 배열로 설정
+  const [entries, setEntries] = useState([]);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // 디버깅용 콘솔 로그 추가
-    console.log('API_BASE_URL:', API_BASE_URL);
     fetchEntries();
   }, []);
 
   const fetchEntries = async () => {
     try {
       setError('');
-      console.log('Fetching entries from:', `${API_BASE_URL}/guestbook`);
-      
       const response = await axios.get(`${API_BASE_URL}/guestbook`);
       
-      // 디버깅용 로그
-      console.log('API Response:', response);
-      console.log('Response data:', response.data);
-      console.log('Is array?', Array.isArray(response.data));
-      
-      // 배열인지 확인 후 설정
       if (Array.isArray(response.data)) {
         setEntries(response.data);
       } else {
-        console.error('Response data is not an array:', response.data);
-        setEntries([]); // 배열이 아니면 빈 배열로 설정
+        setEntries([]);
         setError('서버에서 올바른 데이터를 받지 못했습니다.');
       }
     } catch (error) {
-      console.error('Failed to fetch entries:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        request: error.request
-      });
-      
-      setEntries([]); // 오류 시 빈 배열로 설정
-      setError(`방명록을 불러오는데 실패했습니다: ${error.message}`);
+      setEntries([]);
+      setError('방명록을 불러오는데 실패했습니다.');
     }
   };
 
@@ -62,8 +44,6 @@ function App() {
     setError('');
     
     try {
-      console.log('Creating entry:', { name: name.trim(), content: content.trim() });
-      
       await axios.post(`${API_BASE_URL}/guestbook`, {
         name: name.trim(),
         content: content.trim()
@@ -74,8 +54,7 @@ function App() {
       await fetchEntries();
       setError('');
     } catch (error) {
-      console.error('Failed to create entry:', error);
-      setError(`메시지 작성에 실패했습니다: ${error.message}`);
+      setError('메시지 작성에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -91,8 +70,7 @@ function App() {
       await fetchEntries();
       setError('');
     } catch (error) {
-      console.error('Failed to delete entry:', error);
-      setError(`메시지 삭제에 실패했습니다: ${error.message}`);
+      setError('메시지 삭제에 실패했습니다.');
     }
   };
 
@@ -106,30 +84,10 @@ function App() {
     });
   };
 
-  // 디버깅 정보 화면에 표시
-  console.log('Current state:', { entries, error, loading });
-
   return (
     <div className="app">
       <div className="container">
         <h1 className="title">방명록</h1>
-
-        {/* 디버깅 정보 표시 */}
-        <div style={{ 
-          background: '#f0f0f0', 
-          padding: '1rem', 
-          margin: '1rem 0', 
-          borderRadius: '8px',
-          fontSize: '0.875rem',
-          fontFamily: 'monospace'
-        }}>
-          <strong>디버깅 정보:</strong><br/>
-          API URL: {API_BASE_URL}<br/>
-          Entries type: {typeof entries}<br/>
-          Entries is array: {Array.isArray(entries).toString()}<br/>
-          Entries length: {Array.isArray(entries) ? entries.length : 'N/A'}<br/>
-          Entries: {JSON.stringify(entries)}
-        </div>
 
         {/* 오류 메시지 */}
         {error && (
@@ -189,15 +147,11 @@ function App() {
         <div className="messages">
           {/* 통계 카드 */}
           <div className="stats-card">
-            <span className="stats-number">{Array.isArray(entries) ? entries.length : 0}</span>
+            <span className="stats-number">{entries.length}</span>
             <span className="stats-label">총 메시지</span>
           </div>
 
-          {!Array.isArray(entries) ? (
-            <div className="error">
-              데이터 형식이 올바르지 않습니다. 개발자 도구의 콘솔을 확인해주세요.
-            </div>
-          ) : entries.length === 0 ? (
+          {entries.length === 0 ? (
             <div className="empty-state">
               <p>아직 작성된 메시지가 없습니다.</p>
               <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', opacity: 0.7 }}>
