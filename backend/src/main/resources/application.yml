@@ -31,16 +31,32 @@ spring:
 # 서버 설정
 server:
   port: ${SERVER_PORT:8080}
+  # 도메인 관련 설정
+  servlet:
+    context-path: /
+  forward-headers-strategy: framework
 
 # 액추에이터 설정
 management:
   endpoints:
     web:
       exposure:
-        include: ${MANAGEMENT_ENDPOINTS:health,info}
+        include: ${MANAGEMENT_ENDPOINTS:health,info,metrics}
+      cors:
+        allowed-origins: ${CORS_ALLOWED_ORIGINS:https://t1324.p.ssafy.io,http://localhost:3000}
+        allowed-methods: GET,POST
   endpoint:
     health:
       show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:always}
+  server:
+    port: ${MANAGEMENT_PORT:8080}
+
+# CORS 설정 (커스텀)
+cors:
+  allowed:
+    origins: ${CORS_ALLOWED_ORIGINS:https://t1324.p.ssafy.io,http://localhost:3000}
+    methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+    headers: ${CORS_ALLOWED_HEADERS:*}
 
 # 로깅 설정
 logging:
@@ -49,3 +65,59 @@ logging:
     org.springframework.web: ${LOG_LEVEL_WEB:DEBUG}
     org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
     org.hibernate: ${LOG_LEVEL_HIBERNATE:WARN}
+    org.springframework.web.cors: ${LOG_LEVEL_CORS:DEBUG}
+
+---
+# 개발 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:devdb
+  h2:
+    console:
+      enabled: true
+cors:
+  allowed:
+    origins: http://localhost:3000,http://localhost:8080
+
+---
+# Docker 환경 설정  
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:h2:mem:dockerdb
+  h2:
+    console:
+      enabled: false
+cors:
+  allowed:
+    origins: https://t1324.p.ssafy.io,http://localhost:3000
+
+---
+# 프로덕션 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:h2:mem:proddb
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: false
+cors:
+  allowed:
+    origins: https://t1324.p.ssafy.io
+logging:
+  level:
+    com.guestbook.guestbook: INFO
+    org.springframework.web: WARN
+    org.springframework.web.cors: WARN

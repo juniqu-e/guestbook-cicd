@@ -9,22 +9,82 @@ services:
       - JPA_SHOW_SQL=false
       - LOG_LEVEL_APP=INFO
       - LOG_LEVEL_WEB=WARN
+      - LOG_LEVEL_CORS=WARN
       - H2_CONSOLE_ENABLED=false
+      # 도메인 관련 환경변수
+      - CORS_ALLOWED_ORIGINS=https://t1324.p.ssafy.io
+      - CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+      - CORS_ALLOWED_HEADERS=*
+      # 프로덕션 보안 설정
+      - MANAGEMENT_ENDPOINTS=health,info
+      - MANAGEMENT_HEALTH_SHOW_DETAILS=when-authorized
     restart: unless-stopped
     networks:
       - guestbook-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 로그 설정 - 로그 파일 크기 제한
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     image: ghcr.io/juniqu-e/guestbook-cicd/frontend:${IMAGE_TAG:-latest}
     container_name: guestbook-frontend
     ports:
       - "3000:80"
+    environment:
+      # 도메인 환경변수 (필요시 런타임에서 사용)
+      - DOMAIN=t1324.p.ssafy.io
+      - API_URL=https://t1324.p.ssafy.io/api
     depends_on:
-      - backend  # 단순 의존성만, 헬스체크 없음
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - guestbook-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || curl -f http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    # 로그 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 옵션: Nginx 프록시 (도메인 SSL 처리용)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: guestbook-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro  # SSL 인증서 마운트
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - guestbook-network
 
 networks:
   guestbook-network:
     driver: bridge
+    # 네트워크 최적화
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    # 도메인 설정
+    driver_opts:
+      com.docker.network.bridge.name: guestbook-br
