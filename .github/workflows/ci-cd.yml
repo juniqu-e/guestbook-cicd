@@ -37,6 +37,7 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=sha,prefix=commit-
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Extract metadata for frontend
       id: meta-frontend
@@ -47,6 +48,7 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=sha,prefix=commit-
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Backend image
       uses: docker/build-push-action@v5
@@ -121,7 +123,7 @@ jobs:
           
           services:
             backend:
-              image: ghcr.io/juniqu-e/guestbook-cicd/backend:${IMAGE_TAG:-latest}
+              image: ghcr.io/juniqu-e/guestbook-cicd/backend:${IMAGE_TAG:-master}
               container_name: guestbook-backend
               ports:
                 - "8080:8080"
@@ -255,7 +257,7 @@ jobs:
           cd ~/guestbook
           
           # 환경변수 설정
-          export IMAGE_TAG="commit-${{ github.sha }}"
+          export IMAGE_TAG="latest"
           export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           export GITHUB_ACTOR="${{ github.actor }}"
           
