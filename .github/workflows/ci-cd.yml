@@ -58,6 +58,7 @@ jobs:
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
 
+    # 🔥 핵심 수정: 프론트엔드 빌드에 환경변수 추가
     - name: Build and push Frontend image
       uses: docker/build-push-action@v5
       with:
@@ -65,6 +66,12 @@ jobs:
         push: true
         tags: ${{ steps.meta-frontend.outputs.tags }}
         labels: ${{ steps.meta-frontend.outputs.labels }}
+        build-args: |
+          VITE_API_BASE_URL=https://t1324.p.ssafy.io/api
+          VITE_APP_TITLE=방명록
+          VITE_APP_VERSION=1.0.0
+          VITE_ENVIRONMENT=production
+          VITE_API_TIMEOUT=30000
 
   deploy:
     needs: build
@@ -208,10 +215,6 @@ jobs:
           echo "🚀 새 서비스 시작 중..."
           timeout 180s $COMPOSE_CMD -f docker-compose.prod.yml up -d
           
-          # 헬스체크
-          echo "🏥 서비스 헬스체크 중..."
-          sleep 30
-          
           if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "guestbook"; then
             echo "✅ 서비스가 정상적으로 시작되었습니다!"
           else
@@ -219,6 +222,10 @@ jobs:
             $COMPOSE_CMD -f docker-compose.prod.yml logs --tail=20
             exit 1
           fi
+          
+          # 🔍 환경변수 적용 확인
+          echo "🔍 프론트엔드 API URL 확인:"
+          docker exec guestbook-frontend find /usr/share/nginx/html -name "*.js" | head -1 | xargs docker exec guestbook-frontend grep -o 'https://t1324\.p\.ssafy\.io\|localhost:8080' | head -3
           
           # 최종 상태 확인
           echo "📋 실행 중인 서비스:"
